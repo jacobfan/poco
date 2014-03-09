@@ -85,6 +85,9 @@ def fix_user_orders(connection, site_id):
     c_user_orders.drop_indexes()
     c_user_orders.ensure_index("order_datetime", -1, background=True, unique=False)
 
+def fix_traffic_metrics(connection, site_id):
+    c_traffic_metrics = getSiteDBCollection(mongo_client.connection, site_id, "traffic_metrics")
+    c_traffic_metrics.ensure_index("item_id", -1, background=True, unique=True)
 
 if __name__ == "__main__":
     for site in connection["tjb-db"]["sites"].find():
@@ -101,3 +104,4 @@ if __name__ == "__main__":
         fix_statistics(connection, site_id)
         fix_viewed_ultimately_buys(connection, site_id)
         fix_calculation_records(connection, site_id)
+        fix_traffic_metrics(connection, site_id)

@@ -398,3 +398,71 @@ class MongoClient:
     def writeLogToMongo(self, site_id, content):
         c_raw_logs = getSiteDBCollection(self.connection, site_id, "raw_logs")
         c_raw_logs.insert(content)
+        self.updateTrafficMetricsFromLog(site_id, content)
+
+    def updateTrafficMetricsFromLog(self, site_id, raw_log):
+        c_traffic_metrics = getSiteDBCollection(self.connection, site_id, "traffic_metrics")
+        behavior = raw_log.get("behavior", None)
+        created_on = raw_log["created_on"]
+        year, month, day, hour = created_on.year, created_on.month, created_on.day, created_on.hour
+        if behavior == "V":
+            item_id = raw_log["item_id"]
+            c_traffic_metrics.update({"item_id": item_id},
+                    {"$inc": {
+                        "v.%d.v" % year: 1,
+                        "v.%d.%d.v" % (year, month): 1,
+                        "v.%d.%d.%d.v" % (year, month, day): 1,
+                        "v.%d.%d.%d.%d.v" % (year, month, day, hour): 1,
+                    }
+                    },
+                    upsert=True)
+        elif behavior == "PLO":
+            for order_row in raw_log["order_content"]:
+                item_id = order_row["item_id"]
+                c_traffic_metrics.update({"item_id": item_id},
+                    {"$inc": {
+                        ("b.%d.b" % year): 1,
+                        ("b.%d.%d.b" % (year, month)): 1,
+                        ("b.%d.%d.%d.b" % (year, month, day)): 1,
+                         "b.%d.%d.%d.%d.b" % (year, month, day, hour): 1,
+                    }
+                    },
+                    upsert=True)
+
+    def getLastNDays(self, n, today):
+        dt = today
+        result = []
+        for i in range(n):
+            result.append(dt)
+            dt -= datetime.timedelta(days=1)
+        return result
+
+    def getLast7DaysAttributeNames(self, prefix, today):
+        last_7_days = self.getLastNDays(7, today)
+        attr_names = ["$%s.%d.%d.%d.%s" % (prefix, dt.year, dt.month, dt.day, prefix) 
+                    for dt in last_7_days]
+        return attr_names
+
+    def getHotViewList(self, site_id, today=None):
+        if today is None:
+            today = datetime.date.today()
+            #today = datetime.date(2013,12,5)
+        last_7_days_attr_names = self.getLast7DaysAttributeNames("v", today)
+        c_traffic_metrics = getSiteDBCollection(self.connection, site_id, "traffic_metrics")
+        res = c_traffic_metrics.aggregate(
+            [
+            {"$project": {
+                "item_id": "$item_id",
+                "total_views": {"$add": last_7_days_attr_names}
+            }
+            },
+            {"$sort": {"total_views": -1}},
+            {"$limit": 10}
+            ]
+        )
+        result = res.get("result", [])
+        if result:
+            highest_views = max(1.0, float(result[0]["total_views"]))
+        else:
+            highest_views = 1.0
+        return [(record["item_id"], record["total_views"]/ highest_views) for record in result]

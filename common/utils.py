@@ -186,3 +186,4 @@ def dt(dt_str):
     dt = datetime.datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S")
     us = int(us.rstrip("Z"), 10)
     return dt + datetime.timedelta(microseconds=us)
+

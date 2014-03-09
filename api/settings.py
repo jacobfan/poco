@@ -9,6 +9,8 @@ api_server_prefix = None
 local_raw_log_file = None
 # this should be a dictionary. set([site_id])
 recommendation_deduplicate_item_names_required_set = None
+memcached_hosts = None
+memcache_hot_view_list_expiry_time = 60
 
 from local_settings import *
 
@@ -16,3 +18,4 @@ assert mongodb_host is not None
 assert api_server_prefix is not None
 assert local_raw_log_file is not None
 assert recommendation_deduplicate_item_names_required_set is not None
+assert memcached_hosts is not None

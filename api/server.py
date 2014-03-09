@@ -15,7 +15,7 @@ import settings
 import getopt
 import urllib
 import logging
-
+import memcache
 
 from common.utils import smart_split
 
@@ -39,6 +39,23 @@ def getConnection():
 mongo_client = MongoClient(getConnection())
 
 mongo_client.reloadApiKey2SiteID()
+
+class HotViewListCache:
+    def __init__(self, memcached_hosts, mongo_client, expiry_time):
+        self.mc = memcache.Client(memcached_hosts)
+        self.mongo_client = mongo_client
+        self.expiry_time = expiry_time
+
+    def getHotViewList(self, site_id):
+        key = "hot-view-list_global_%s" % site_id
+        obj = self.mc.get(key)
+        if not obj:
+            obj = self.mongo_client.getHotViewList(site_id)
+            self.mc.set(key, obj, time=self.expiry_time)
+        return obj
+hot_view_list_cache = HotViewListCache(settings.memcached_hosts, mongo_client, 
+                            settings.memcache_hot_view_list_expiry_time)
+
 
 # jquery serialize()  http://api.jquery.com/serialize/
 # http://stackoverflow.com/questions/5784400/un-jquery-param-in-server-side-python-gae
@@ -863,7 +880,10 @@ class GetByBrowsingHistoryProcessor(BaseSimpleResultRecommendationProcessor):
             browsing_history = []
         else:
             browsing_history = browsing_history.split(",")
-        return mongo_client.recommend_based_on_some_items(site_id, "V", browsing_history)
+        topn = mongo_client.recommend_based_on_some_items(site_id, "V", browsing_history)
+        if len(topn) == 0:
+            topn = hot_view_list_cache.getHotViewList(site_id)
+        return topn
 
 
 class GetByBrowsingHistoryHandler(SingleRequestHandler):
