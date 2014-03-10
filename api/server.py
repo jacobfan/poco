@@ -47,7 +47,7 @@ class HotViewListCache:
         self.expiry_time = expiry_time
 
     def getHotViewList(self, site_id):
-        key = "hot-view-list_global_%s" % site_id
+        key = "hot-view-list_global_%s" % site_id.encode("utf8")
         obj = self.mc.get(key)
         if not obj:
             obj = self.mongo_client.getHotViewList(site_id)
