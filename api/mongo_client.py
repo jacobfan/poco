@@ -443,10 +443,17 @@ class MongoClient:
                     for dt in last_7_days]
         return attr_names
 
-    def getHotViewList(self, site_id, today=None):
+    def getHotViewList(self, site_id):
+        c_cached_hot_view = getSiteDBCollection(self.connection, site_id, "cached_hot_view")
+        cached = c_cached_hot_view.find_one()
+        if cached:
+            return cached["result"]
+        else:
+            return []
+
+    def updateHotViewList(self, site_id, today=None):
         if today is None:
             today = datetime.date.today()
-            #today = datetime.date(2013,12,5)
         last_7_days_attr_names = self.getLast7DaysAttributeNames("v", today)
         c_traffic_metrics = getSiteDBCollection(self.connection, site_id, "traffic_metrics")
         res = c_traffic_metrics.aggregate(
@@ -465,4 +472,6 @@ class MongoClient:
             highest_views = max(1.0, float(result[0]["total_views"]))
         else:
             highest_views = 1.0
-        return [(record["item_id"], record["total_views"]/ highest_views) for record in result]
+        result = [(record["item_id"], record["total_views"]/ highest_views) for record in result]
+        c_cached_hot_view = getSiteDBCollection(self.connection, site_id, "cached_hot_view")
+        c_cached_hot_view.update({}, {"result": result}, upsert=True)

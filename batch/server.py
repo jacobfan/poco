@@ -12,6 +12,7 @@ import subprocess
 import os.path
 import settings
 from common.utils import getSiteDBCollection
+from api.mongo_client import MongoClient
 
 # TODO: use hamake?
 
@@ -581,6 +582,16 @@ def loadSites(connection):
     return [site for site in c_sites.find({'available': 'on'})]
 
 
+class HotIndexCalculation:
+    def __init__(self, connection, site_id):
+        self.connection = connection
+        self.mongo_client = MongoClient(connection)
+        self.site_id = site_id
+
+    def run(self):
+        self.mongo_client.updateHotViewList(self.site_id)
+
+
 def workOnSite(site, is_manual_calculation=False):
     calculation_result = None
 
@@ -620,6 +631,7 @@ def workOnSite(site, is_manual_calculation=False):
 
                 # Begin workflow to do calculations
                 begin_flow()
+                HotIndexCalculation(connection, SITE_ID).run()
 
                 writeCalculationEnd(
                     SITE_ID, CALC_SUCC, err_msg="SOME_FLOWS_FAILED")

@@ -42,17 +42,19 @@ mongo_client.reloadApiKey2SiteID()
 
 class HotViewListCache:
     def __init__(self, memcached_hosts, mongo_client, expiry_time):
-        self.mc = memcache.Client(memcached_hosts)
+        #self.mc = memcache.Client(memcached_hosts)
         self.mongo_client = mongo_client
         self.expiry_time = expiry_time
 
     def getHotViewList(self, site_id):
-        key = "hot-view-list_global_%s" % site_id.encode("utf8")
-        obj = self.mc.get(key)
-        if not obj:
-            obj = self.mongo_client.getHotViewList(site_id)
-            self.mc.set(key, obj, time=self.expiry_time)
-        return obj
+        #key = "hot-view-list_global_%s" % site_id.encode("utf8")
+        #obj = self.mc.get(key)
+        #if not obj:
+        #    obj = self.mongo_client.getHotViewList(site_id)
+        #    self.mc.set(key, obj, time=self.expiry_time)
+        #return obj
+        # NOTE: disabled memcached cache currently
+        return self.mongo_client.getHotViewList(site_id)
 hot_view_list_cache = HotViewListCache(settings.memcached_hosts, mongo_client, 
                             settings.memcache_hot_view_list_expiry_time)
 
