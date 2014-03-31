@@ -22,6 +22,9 @@ class SimpleRecommendationResultFilter:
         return item_dict["available"]
 
 
+HOT_INDEX_ALL_ITEMS = 0
+
+
 # Now we intepret items which do not belong to any group in a default group.
 class SameGroupRecommendationResultFilter:
     def __init__(self, mongo_client, site_id, item_id):
@@ -445,7 +448,7 @@ class MongoClient:
 
     def getHotViewList(self, site_id):
         c_cached_hot_view = getSiteDBCollection(self.connection, site_id, "cached_hot_view")
-        cached = c_cached_hot_view.find_one()
+        cached = c_cached_hot_view.find_one({"type": HOT_INDEX_ALL_ITEMS})
         if cached:
             return cached["result"]
         else:
@@ -474,4 +477,5 @@ class MongoClient:
             highest_views = 1.0
         result = [(record["item_id"], record["total_views"]/ highest_views) for record in result]
         c_cached_hot_view = getSiteDBCollection(self.connection, site_id, "cached_hot_view")
-        c_cached_hot_view.update({}, {"result": result}, upsert=True)
+        c_cached_hot_view.update({"type": HOT_INDEX_ALL_ITEMS}, 
+                                 {"type": HOT_INDEX_ALL_ITEMS, "result": result}, upsert=True)

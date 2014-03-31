@@ -1,16 +1,7 @@
 import sys
+sys.path.insert(0, "../")
 import pymongo
 from common.utils import getSiteDBCollection
-
-
-if len(sys.argv) != 2:
-    print "Usage: fix_db_indexes.py <mongodb_host>"
-    sys.exit(1)
-else:
-    mongodb_host = sys.argv[1]
-
-
-connection = pymongo.Connection(mongodb_host)
 
 
 def fix_item_similarities_collections(connection, site_id):
@@ -86,10 +77,22 @@ def fix_user_orders(connection, site_id):
     c_user_orders.ensure_index("order_datetime", -1, background=True, unique=False)
 
 def fix_traffic_metrics(connection, site_id):
-    c_traffic_metrics = getSiteDBCollection(mongo_client.connection, site_id, "traffic_metrics")
+    c_traffic_metrics = getSiteDBCollection(connection, site_id, "traffic_metrics")
     c_traffic_metrics.ensure_index("item_id", -1, background=True, unique=True)
 
+def fix_cached_hot_view(connection, site_id):
+    c_cached_hot_view = getSiteDBCollection(connection, site_id, "cached_hot_view")
+    c_cached_hot_view.ensure_index("type", -1, background=True, unique=True)
+
 if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print "Usage: fix_db_indexes.py <mongodb_host>"
+        sys.exit(1)
+    else:
+        mongodb_host = sys.argv[1]
+
+    connection = pymongo.Connection(mongodb_host)
+
     for site in connection["tjb-db"]["sites"].find():
         site_id = site["site_id"]
         print "Work on %s" % site_id
@@ -105,3 +108,4 @@ if __name__ == "__main__":
         fix_viewed_ultimately_buys(connection, site_id)
         fix_calculation_records(connection, site_id)
         fix_traffic_metrics(connection, site_id)
+        c_cached_hot_view(connection, site_id)
