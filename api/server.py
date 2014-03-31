@@ -41,10 +41,10 @@ mongo_client = MongoClient(getConnection())
 mongo_client.reloadApiKey2SiteID()
 
 class HotViewListCache:
-    def __init__(self, memcached_hosts, mongo_client, expiry_time):
+    def __init__(self, mongo_client):
         #self.mc = memcache.Client(memcached_hosts)
         self.mongo_client = mongo_client
-        self.expiry_time = expiry_time
+        #self.expiry_time = expiry_time
 
     def getHotViewList(self, site_id):
         #key = "hot-view-list_global_%s" % site_id.encode("utf8")
@@ -55,8 +55,9 @@ class HotViewListCache:
         #return obj
         # NOTE: disabled memcached cache currently
         return self.mongo_client.getHotViewList(site_id)
-hot_view_list_cache = HotViewListCache(settings.memcached_hosts, mongo_client, 
-                            settings.memcache_hot_view_list_expiry_time)
+#hot_view_list_cache = HotViewListCache(settings.memcached_hosts, mongo_client, 
+#                            settings.memcache_hot_view_list_expiry_time)
+hot_view_list_cache = HotViewListCache(mongo_client)
 
 
 # jquery serialize()  http://api.jquery.com/serialize/
